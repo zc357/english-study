@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>英文閱讀 / 電影學習工具</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f5f5f5;
+text-align:center;
+padding:40px;
+}
+
+h1{
+margin-bottom:20px;
+}
+
+input{
+padding:10px;
+width:260px;
+font-size:16px;
+}
+
+button{
+padding:10px 14px;
+margin:5px;
+font-size:15px;
+cursor:pointer;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:10px;
+width:520px;
+margin:20px auto;
+text-align:left;
+box-shadow:0 3px 8px rgba(0,0,0,0.1);
+}
+
+textarea{
+width:520px;
+height:120px;
+padding:10px;
+margin-top:10px;
+}
+
+.wordItem{
+padding:6px;
+border-bottom:1px solid #eee;
+}
+
+.section{
+margin-top:40px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>📖 英文閱讀 / 電影學習工具</h1>
+
+<input id="wordInput" placeholder="輸入英文單字">
+<button onclick="searchWord()">查詢</button>
+<button onclick="speakWord()">🔊 發音</button>
+
+<div id="result"></div>
+
+<button onclick="reviewWord()">🧠 隨機複習</button>
+
+<div class="section">
+
+<h2>📚 文章模式</h2>
+
+<textarea id="articleInput" placeholder="貼一段英文文章或電影字幕"></textarea>
+
+<br>
+
+<button onclick="analyzeText()">找出單字</button>
+
+<div id="articleResult"></div>
+
+</div>
+
+<div class="section">
+
+<h2>⭐ 我的單字庫</h2>
+
+<div id="savedWords"></div>
+
+</div>
+
+<script>
+
+let savedWords = JSON.parse(localStorage.getItem("words")) || []
+
+function displaySaved(){
+
+let container=document.getElementById("savedWords")
+
+container.innerHTML=""
+
+savedWords.forEach(w=>{
+container.innerHTML+=`<div class="wordItem">${w}</div>`
+})
+
+}
+
+displaySaved()
+
+async function searchWord(){
+
+let word=document.getElementById("wordInput").value
+
+if(!word)return
+
+let dictUrl=`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
+
+let dictRes=await fetch(dictUrl)
+
+let dictData=await dictRes.json()
+
+let meaning=dictData[0].meanings[0].definitions[0].definition
+
+let example=dictData[0].meanings[0].definitions[0].example || "No example"
+
+let transUrl=`https://api.mymemory.translated.net/get?q=${word}&langpair=en|zh`
+
+let transRes=await fetch(transUrl)
+
+let transData=await transRes.json()
+
+let chinese=transData.responseData.translatedText
+
+document.getElementById("result").innerHTML=`
+
+<div class="card">
+
+<h2>${word}</h2>
+
+<p><b>中文翻譯:</b> ${chinese}</p>
+
+<p><b>English Meaning:</b> ${meaning}</p>
+
+<p><b>Example:</b> ${example}</p>
+
+<button onclick="saveWord('${word}')">⭐ 收藏單字</button>
+
+</div>
+
+`
+
+}
+
+function saveWord(word){
+
+if(!savedWords.includes(word)){
+
+savedWords.push(word)
+
+localStorage.setItem("words",JSON.stringify(savedWords))
+
+displaySaved()
+
+}
+
+}
+
+function reviewWord(){
+
+if(savedWords.length==0){
+
+alert("單字庫還沒有單字")
+
+return
+
+}
+
+let random=savedWords[Math.floor(Math.random()*savedWords.length)]
+
+document.getElementById("wordInput").value=random
+
+searchWord()
+
+}
+
+function speakWord(){
+
+let word=document.getElementById("wordInput").value
+
+let speech=new SpeechSynthesisUtterance(word)
+
+speech.lang="en-US"
+
+speechSynthesis.speak(speech)
+
+}
+
+function analyzeText(){
+
+let text=document.getElementById("articleInput").value
+
+let words=text.match(/\b[a-zA-Z]+\b/g)
+
+let unique=[...new Set(words)]
+
+let result=""
+
+unique.forEach(w=>{
+
+result+=`<button onclick="fillWord('${w}')">${w}</button> `
+
+})
+
+document.getElementById("articleResult").innerHTML=result
+
+}
+
+function fillWord(word){
+
+document.getElementById("wordInput").value=word
+
+searchWord()
+
+}
+
+</script>
+
+</body>
+</html>
